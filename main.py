@@ -39,6 +39,7 @@ def processFiles(dir, reultFile, groundtruth, writeScore=False):
 	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
 	for file in allFiles:
 		fileInProcess = readFileInHEX(dir+"/"+file)
+		print (file)
 		score = {}
 		score["jpg"] = JPGrules.isJPG(fileInProcess)
 		score["png"] = PNGrules.isPNG(fileInProcess)
