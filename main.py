@@ -50,20 +50,52 @@ def writeResult(allScores, resultFile, writeScore=False):
 		f.write(result+"\n")
 	f.close()
 
-def calculateGlobalScore(allScores, groundtruth):
-	detectedAlteredImages=-1
-	totalDetectionsAlteredImages=-1
-	totalAlteredImages=-1
+def calculateGlobalScore(dir, allScores, groundtruth):
+	totalAlteredImages, totalImages, fail, scored = callculateAlteredImages(dir, allScores, groundtruth)
+	#detectedAlteredImages=-1 
+	#allDetectedAlteredImages=-1
 
-	precision=detectedAlteredImages/totalDetectionsAlteredImages
-	recall=detectedAlteredImages/totalAlteredImages
-	fMeasure=2*(precision*recall)/(precision+recall)
+	#precision=detectedAlteredImages/allDetectedAlteredImages
+	#recall=detectedAlteredImages/totalAlteredImages
+	#fMeasure=2*(precision*recall)/(precision+recall)
 
-	print("\n\n+ + + Scores + + +\n\n")
-	print("Precision: " + str(precision))
-	print("Recall: " + str(recall))
-	print("F-Measure: " + str(fMeasure))
+	print("\n\n+ + + Scores + + +\n")
+	print("Total of images in directory: " + str(totalImages))
+	print("Fails: " + str(fail))
+	print("Scored: " + str(scored))
+	#print("Precision: " + str(precision))
+	#print("Recall: " + str(recall))
+	#print("F-Measure: " + str(fMeasure))
 
+def callculateAlteredImages(dir, allScores, groundtruth):
+	alteredImages = 0
+	totalImages = 0
+	fail = 0
+	scored = 0
+	groundTruthContent = []
+
+	f = open(groundtruth, "r")
+	for x in f:
+		groundTruthContent += [x.split("\n")[0]]
+	
+	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
+	for file in allFiles:
+		extension = file.split(".")[1]
+		matching = [s for s in groundTruthContent if file.split(".")[0] in s][0]
+		realExtension = matching.split(";")[1]
+		if(realExtension != extension):
+			alteredImages += 1
+		totalImages += 1
+
+		#Structure is: file:(type, {scores..})
+		myPrevision = allScores[file][0]
+		if(realExtension != myPrevision):
+			fail += 1
+		else:
+			scored += 1
+		
+
+	return (alteredImages, totalImages, fail, scored)
 
 def main():
 	pathlib.Path('logs').mkdir(parents=True, exist_ok=True)
@@ -100,7 +132,7 @@ def main():
 		print ("Process files...\n\n")
 		allScores = processFiles(args.filesdir)
 		writeResult(allScores, args.resultfile, args.showindividualscores)
-		calculateGlobalScore(allScores, args.groundtruth)
+		calculateGlobalScore(args.filesdir, allScores, args.groundtruth)
 
 if __name__ == "__main__":
    main()
