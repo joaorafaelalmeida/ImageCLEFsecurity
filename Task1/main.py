@@ -125,6 +125,38 @@ def readGroundTruth(groundtruth):
 		groundTruthContent += [x.split("\n")[0]]
 	return groundTruthContent
 
+JPG_MN = b'\xff\xd8\xff\xe0'
+GIF_MN = b'\x47\x49\x46\x38'
+PNG_MN = b'\x89\x50\x4e\x47'
+PDF_MN = b'\x25\x50\x44\x46'
+
+def convertFiles(dir, dstDir, extensions):
+	allExtensions = readGroundTruth(extensions)
+	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
+	for file in allFiles:
+		fileName = file.split(".")[0]
+		matching = [s for s in allExtensions if fileName in s][0]
+		realExtension = matching.split(";")[1]
+		#fileInProcess = readFileInHEX(dir+"/"+file)
+		f = open(dir+"/"+file, 'rb')
+		f.seek(4) 
+		fileInProcess = f.read()
+		pathlib.Path(dstDir+"/"+realExtension).mkdir(parents=True, exist_ok=True)
+		with open(dstDir+"/"+realExtension + "/" + fileName + "." + realExtension, 'wb') as out_file:
+			if(realExtension == 'jpg'):
+				initial_bytes = JPG_MN
+			elif(realExtension == 'gif'):
+				initial_bytes = GIF_MN
+			elif(realExtension == 'png'):
+				initial_bytes = PNG_MN
+			elif(realExtension == 'pdf'):
+				initial_bytes = PDF_MN
+			out_file.write(initial_bytes)
+			out_file.write(fileInProcess)
+			out_file.close()
+
+		
+
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c", "--convert", help="Convert files to original format", action="store_true")
@@ -132,12 +164,6 @@ def main():
 					help="Read and print file in hexadecimal format")
 	
 	parser.add_argument("-p", "--process", help="Process the files and compare with the ground truth", action="store_true")
-	parser.add_argument("-ss", "--show-individual-scores", dest='showindividualscores', \
-					help="Add a new field with in the result file with the scores", action="store_true")
-	parser.add_argument("-re", "--write-real-extension", dest='realextension', \
-					help="Add a new field in the result files with the real extension", action="store_true")
-
-
 	parser.add_argument("-pt", "--process-test-set", dest='processtest', \
 					help="Run with the test set", action="store_true")
 	
@@ -148,11 +174,19 @@ def main():
 	parser.add_argument("-gt", "--ground-truth",  dest='groundtruth', type=str, \
 					default="../GroundTruthDataSet/ground_truth_training_set_task_1.txt",\
 					help="Ground truth text file (Default: ../GroundTruthDataSet/ground_truth_training_set_task_1.txt)")
+
+	parser.add_argument("-dd", "--destination-dir",  dest='dstdir', type=str, default="ConvertedDataSet",\
+					help="Directory to write the files in the original format (Default: ConvertedDataSet)")
+
+	parser.add_argument("-ss", "--show-individual-scores", dest='showindividualscores', \
+					help="Add a new field with in the result file with the scores", action="store_true")
+	parser.add_argument("-re", "--write-real-extension", dest='realextension', \
+					help="Add a new field in the result files with the real extension", action="store_true")
 	args = parser.parse_args()
 
 	if args.convert:
 		print ("Convert files to original format")
-		print ("TO DO")
+		convertFiles(args.filesdir, args.dstdir, args.resultfile)
 
 	if args.filetohexa != "":
 		print ("Print file in hexadecimal\n\n")
