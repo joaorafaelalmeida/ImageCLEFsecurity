@@ -11,7 +11,6 @@ import PNGrules
 import GIFrules
 import PDFrules
 
-
 def setup_logger(name, log_file, level=lg.INFO):
 	formatter = lg.Formatter('%(asctime)s %(message)s', datefmt='%d/%m/%y %I:%M:%S %p')
 	handler = lg.FileHandler(log_file)
@@ -37,23 +36,32 @@ def processFiles(dir):
 	allScores = {}
 	for file in allFiles:
 		fileInProcess = readFileInHEX(dir+"/"+file)
+		print (file)
 		score = {}
 		score["jpg"] = JPGrules.isJPG(fileInProcess)
 		score["png"] = PNGrules.isPNG(fileInProcess)
 		score["gif"] = GIFrules.isGIF(fileInProcess)
 		score["pdf"] = PDFrules.isPDF(fileInProcess)
-		fileType = sorted(score.items(), key=operator.itemgetter(1), reverse=True)[0][0]
-		#print(sorted(score.items(), key=operator.itemgetter(1)))
+		classification = sorted(score.items(), key=operator.itemgetter(1), reverse=True)[0]
+		if(classification[1] == 0):
+			fileType = "NULL"
+		else:
+			fileType = classification[0]
 		#Structure is: file:(type, {scores..})
 		allScores[file] = (fileType, score)
 	return allScores
 
-def writeResult(allScores, resultFile, writeScore=False):
+def writeResult(allScores, resultFile, writeScore=False, writeRealExtension=False, groundtruth=""):
 	f = open(resultFile, "w")
+	if writeRealExtension:
+		groundTruthContent = readGroundTruth(groundtruth)
 	for score in allScores:
 		result = score + ";" + allScores[score][0]
 		if writeScore:
 			result += ";" + str(allScores[score][1])
+		if writeRealExtension:
+			matching = [s for s in groundTruthContent if score.split(".")[0] in s][0]
+			result += ";" + matching.split(";")[1]
 		f.write(result+"\n")
 	f.close()
 
@@ -70,6 +78,7 @@ def calculateGlobalScore(dir, allScores, groundtruth):
 	print("Total of images in directory: " + str(totalImages))
 	print("Fails: " + str(fail))
 	print("Scored: " + str(scored))
+	print("Percentage of success: " + str((scored*100)/totalImages))
 	#print("Precision: " + str(precision))
 	#print("Recall: " + str(recall))
 	#print("F-Measure: " + str(fMeasure))
@@ -79,11 +88,7 @@ def callculateAlteredImages(dir, allScores, groundtruth):
 	totalImages = 0
 	fail = 0
 	scored = 0
-	groundTruthContent = []
-
-	f = open(groundtruth, "r")
-	for x in f:
-		groundTruthContent += [x.split("\n")[0]]
+	groundTruthContent = readGroundTruth(groundtruth)
 	
 	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
 	for file in allFiles:
@@ -102,6 +107,13 @@ def callculateAlteredImages(dir, allScores, groundtruth):
 			scored += 1
 	return (alteredImages, totalImages, fail, scored)
 
+def readGroundTruth(groundtruth):
+	groundTruthContent = []
+	f = open(groundtruth, "r")
+	for x in f:
+		groundTruthContent += [x.split("\n")[0]]
+	return groundTruthContent
+
 def main():
 	pathlib.Path('logs').mkdir(parents=True, exist_ok=True)
 	pathlib.Path('results').mkdir(parents=True, exist_ok=True)
@@ -115,6 +127,8 @@ def main():
 	parser.add_argument("-p", "--process", help="Process the files and compare with the ground truth", action="store_true")
 	parser.add_argument("-ss", "--show-individual-scores", dest='showindividualscores', \
 					help="Add a new field with in the result file with the scores", action="store_true")
+	parser.add_argument("-re", "--write-real-extension", dest='realextension', \
+					help="Add a new field in the result files with the real extension", action="store_true")
 	
 	parser.add_argument("-d", "--dir-of-files",  dest='filesdir', type=str, default="T1DataSet",\
 					help="Directory with files to process (Default: T1DataSet)")	
@@ -135,8 +149,10 @@ def main():
 
 	if args.process:
 		print ("Process files...\n\n")
+		if args.realextension:
+			groundtruth = args.groundtruth
 		allScores = processFiles(args.filesdir)
-		writeResult(allScores, args.resultfile, args.showindividualscores)
+		writeResult(allScores, args.resultfile, args.showindividualscores, args.realextension, groundtruth)
 		calculateGlobalScore(args.filesdir, allScores, args.groundtruth)
 
 if __name__ == "__main__":
