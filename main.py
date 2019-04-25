@@ -5,12 +5,8 @@ import binascii
 import logging as lg
 from os import listdir
 from os.path import isfile, join
-import rules
-
-JPG_MN = "FF D8 FF DB"
-GIF_MN = "47 49 46 38 37 61"
-PDF_MN = "25 50 44 46 2d"
-PNG_MN = "89 50 4E 47 0D 0A 1A 0A"
+import JPGrules
+import operator
 
 def setup_logger(name, log_file, level=lg.INFO):
 	formatter = lg.Formatter('%(asctime)s %(message)s', datefmt='%d/%m/%y %I:%M:%S %p')
@@ -32,13 +28,41 @@ def readFileInHEX(filename):
 		content = f.read()
 	return binascii.hexlify(content)
 
-def processFiles(dir, reultFile, groundtruth, writeScore=False):
+def processFiles(dir):
 	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
+	allScores = {}
 	for file in allFiles:
 		fileInProcess = readFileInHEX(dir+"/"+file)
 		score = {}
-		score["jpg"] = rules.isJPG(fileInProcess)
-		print (score)
+		score["jpg"] = JPGrules.isJPG(fileInProcess)
+		#...
+		fileType = sorted(score.items(), key=operator.itemgetter(1))[0][0]
+		#Structure is: file:(type, {scores..})
+		allScores[file] = (fileType, score)
+	return allScores
+
+def writeResult(allScores, resultFile, writeScore=False):
+	f = open(resultFile, "w")
+	for score in allScores:
+		result = score + ";" + allScores[score][0]
+		if writeScore:
+			result += ";" + str(allScores[score][1])
+		f.write(result+"\n")
+	f.close()
+
+def calculateGlobalScore(allScores, groundtruth):
+	detectedAlteredImages=-1
+	totalDetectionsAlteredImages=-1
+	totalAlteredImages=-1
+
+	precision=detectedAlteredImages/totalDetectionsAlteredImages
+	recall=detectedAlteredImages/totalAlteredImages
+	fMeasure=2*(precision*recall)/(precision+recall)
+
+	print("\n\n+ + + Scores + + +\n\n")
+	print("Precision: " + str(precision))
+	print("Recall: " + str(recall))
+	print("F-Measure: " + str(fMeasure))
 
 
 def main():
@@ -50,7 +74,11 @@ def main():
 	parser.add_argument("-c", "--convert", help="Convert files to original format", action="store_true")
 	parser.add_argument("-fh", "--file-to-hexa",  dest='filetohexa', type=str, default="",\
 					help="Read and print file in hexadecimal format")
+	
 	parser.add_argument("-p", "--process", help="Process the files and compare with the ground truth", action="store_true")
+	parser.add_argument("-ss", "--show-individual-scores", dest='showindividualscores', \
+					help="Add a new field with in the result file with the scores", action="store_true")
+	
 	parser.add_argument("-d", "--dir-of-files",  dest='filesdir', type=str, default="T1DataSet",\
 					help="Directory with files to process (Default: T1DataSet)")	
 	parser.add_argument("-rf", "--result-file",  dest='resultfile', type=str, default="results/task1.txt",\
@@ -70,7 +98,9 @@ def main():
 
 	if args.process:
 		print ("Process files...\n\n")
-		processFiles(args.filesdir, args.resultfile, args.groundtruth)
+		allScores = processFiles(args.filesdir)
+		writeResult(allScores, args.resultfile, args.showindividualscores)
+		calculateGlobalScore(allScores, args.groundtruth)
 
 if __name__ == "__main__":
    main()
