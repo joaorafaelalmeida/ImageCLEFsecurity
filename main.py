@@ -12,6 +12,7 @@ def convertFiles(dir, standardFile):
 	# change the file name
 	# change the magic numbers
 	# store in a new dir
+	pass
 
 def main():
 	parser = argparse.ArgumentParser()
