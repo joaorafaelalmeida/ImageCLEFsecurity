@@ -26,6 +26,10 @@ def setup_logger(name, log_file, level=lg.INFO):
 
 	return logger
 
+pathlib.Path('logs').mkdir(parents=True, exist_ok=True)
+pathlib.Path('results').mkdir(parents=True, exist_ok=True)
+er_logger = setup_logger('error_log', 'logs/error.log')
+
 def readFileInHEX(filename):
 	with open(filename, 'rb') as f:
 		content = f.read()
@@ -44,7 +48,8 @@ def processFiles(dir):
 		score["pdf"] = PDFrules.isPDF(fileInProcess)
 		classification = sorted(score.items(), key=operator.itemgetter(1), reverse=True)[0]
 		if(classification[1] == 0):
-			fileType = "NULL"
+			er_logger.info("File: " + file + " undefined type")
+			fileType = "pdf" #original format
 		else:
 			fileType = classification[0]
 		#Structure is: file:(type, {scores..})
@@ -65,29 +70,29 @@ def writeResult(allScores, resultFile, writeScore=False, writeRealExtension=Fals
 		f.write(result+"\n")
 	f.close()
 
-def calculateGlobalScore(dir, allScores, groundtruth):
-	totalAlteredImages, totalImages, fail, scored = callculateAlteredImages(dir, allScores, groundtruth)
-	#detectedAlteredImages=-1 
-	#allDetectedAlteredImages=-1
+def showScores(dir, allScores, groundtruth):
+	totalAlteredImages, totalImages, fail, scored, detectedAlteredImages, allDetectedAlteredImages = calculateScores(dir, allScores, groundtruth)
 
-	#precision=detectedAlteredImages/allDetectedAlteredImages
-	#recall=detectedAlteredImages/totalAlteredImages
-	#fMeasure=2*(precision*recall)/(precision+recall)
+	precision=detectedAlteredImages/allDetectedAlteredImages
+	recall=detectedAlteredImages/totalAlteredImages
+	fMeasure=2*(precision*recall)/(precision+recall)
 
 	print("\n\n+ + + Scores + + +\n")
 	print("Total of images in directory: " + str(totalImages))
 	print("Fails: " + str(fail))
 	print("Scored: " + str(scored))
 	print("Percentage of success: " + str((scored*100)/totalImages))
-	#print("Precision: " + str(precision))
-	#print("Recall: " + str(recall))
-	#print("F-Measure: " + str(fMeasure))
+	print("Precision: " + str(precision))
+	print("Recall: " + str(recall))
+	print("F-Measure: " + str(fMeasure))
 
-def callculateAlteredImages(dir, allScores, groundtruth):
+def calculateScores(dir, allScores, groundtruth):
 	alteredImages = 0
 	totalImages = 0
 	fail = 0
 	scored = 0
+	detectedAlteredImages = 0
+	allDetectedAlteredImages = 0
 	groundTruthContent = readGroundTruth(groundtruth)
 	
 	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
@@ -95,17 +100,23 @@ def callculateAlteredImages(dir, allScores, groundtruth):
 		extension = file.split(".")[1]
 		matching = [s for s in groundTruthContent if file.split(".")[0] in s][0]
 		realExtension = matching.split(";")[1]
-		if(realExtension != extension):
-			alteredImages += 1
-		totalImages += 1
-
-		#Structure is: file:(type, {scores..})
 		myPrevision = allScores[file][0]
+		
+		totalImages += 1
+		if(realExtension != extension): #Altered
+			alteredImages += 1
+			if(realExtension == myPrevision):
+				detectedAlteredImages += 1
+				allDetectedAlteredImages += 1
+		else:#realExtension = extension
+			if(realExtension != myPrevision):#Bad prevision
+				allDetectedAlteredImages += 1
+
 		if(realExtension != myPrevision):
 			fail += 1
 		else:
 			scored += 1
-	return (alteredImages, totalImages, fail, scored)
+	return (alteredImages, totalImages, fail, scored, detectedAlteredImages, allDetectedAlteredImages)
 
 def readGroundTruth(groundtruth):
 	groundTruthContent = []
@@ -115,10 +126,6 @@ def readGroundTruth(groundtruth):
 	return groundTruthContent
 
 def main():
-	pathlib.Path('logs').mkdir(parents=True, exist_ok=True)
-	pathlib.Path('results').mkdir(parents=True, exist_ok=True)
-	er_logger = setup_logger('error_log', 'logs/error.log')
-
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-c", "--convert", help="Convert files to original format", action="store_true")
 	parser.add_argument("-fh", "--file-to-hexa",  dest='filetohexa', type=str, default="",\
@@ -129,6 +136,10 @@ def main():
 					help="Add a new field with in the result file with the scores", action="store_true")
 	parser.add_argument("-re", "--write-real-extension", dest='realextension', \
 					help="Add a new field in the result files with the real extension", action="store_true")
+
+
+	parser.add_argument("-pt", "--process-test-set", dest='processtest', \
+					help="Run with the test set", action="store_true")
 	
 	parser.add_argument("-d", "--dir-of-files",  dest='filesdir', type=str, default="T1DataSet",\
 					help="Directory with files to process (Default: T1DataSet)")	
@@ -149,11 +160,13 @@ def main():
 
 	if args.process:
 		print ("Process files...\n\n")
-		if args.realextension:
-			groundtruth = args.groundtruth
 		allScores = processFiles(args.filesdir)
-		writeResult(allScores, args.resultfile, args.showindividualscores, args.realextension, groundtruth)
-		calculateGlobalScore(args.filesdir, allScores, args.groundtruth)
+		writeResult(allScores, args.resultfile, args.showindividualscores, args.realextension, args.groundtruth)
+		showScores(args.filesdir, allScores, args.groundtruth)
+
+	if args.processtest:
+		allScores = processFiles(args.filesdir)
+		writeResult(allScores, args.resultfile)
 
 if __name__ == "__main__":
    main()
