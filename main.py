@@ -5,7 +5,10 @@ import binascii
 import logging as lg
 from os import listdir
 from os.path import isfile, join
-import rules
+import JPGrules
+import PNGrules
+import GIFrules
+import PDFrules
 
 JPG_MN = "FF D8 FF DB"
 GIF_MN = "47 49 46 38 37 61"
@@ -37,7 +40,10 @@ def processFiles(dir, reultFile, groundtruth, writeScore=False):
 	for file in allFiles:
 		fileInProcess = readFileInHEX(dir+"/"+file)
 		score = {}
-		score["jpg"] = rules.isJPG(fileInProcess)
+		score["jpg"] = JPGrules.isJPG(fileInProcess)
+		score["png"] = PNGrules.isPNG(fileInProcess)
+		score["gif"] = GIFrules.isGIF(fileInProcess)
+		score["pdf"] = PDFrules.isPDF(fileInProcess)
 		print (score)
 
 
