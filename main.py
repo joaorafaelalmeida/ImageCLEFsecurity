@@ -7,6 +7,10 @@ from os import listdir
 from os.path import isfile, join
 import JPGrules
 import operator
+import PNGrules
+import GIFrules
+import PDFrules
+
 
 def setup_logger(name, log_file, level=lg.INFO):
 	formatter = lg.Formatter('%(asctime)s %(message)s', datefmt='%d/%m/%y %I:%M:%S %p')
@@ -35,8 +39,11 @@ def processFiles(dir):
 		fileInProcess = readFileInHEX(dir+"/"+file)
 		score = {}
 		score["jpg"] = JPGrules.isJPG(fileInProcess)
-		#...
-		fileType = sorted(score.items(), key=operator.itemgetter(1))[0][0]
+		score["png"] = PNGrules.isPNG(fileInProcess)
+		score["gif"] = GIFrules.isGIF(fileInProcess)
+		score["pdf"] = PDFrules.isPDF(fileInProcess)
+		fileType = sorted(score.items(), key=operator.itemgetter(1), reverse=True)[0][0]
+		#print(sorted(score.items(), key=operator.itemgetter(1)))
 		#Structure is: file:(type, {scores..})
 		allScores[file] = (fileType, score)
 	return allScores
@@ -93,8 +100,6 @@ def callculateAlteredImages(dir, allScores, groundtruth):
 			fail += 1
 		else:
 			scored += 1
-		
-
 	return (alteredImages, totalImages, fail, scored)
 
 def main():
