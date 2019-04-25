@@ -146,8 +146,8 @@ def main():
 	parser.add_argument("-rf", "--result-file",  dest='resultfile', type=str, default="results/task1.txt",\
 					help="Result file with the classification of each file (Default: results/task1.txt)")
 	parser.add_argument("-gt", "--ground-truth",  dest='groundtruth', type=str, \
-					default="GroundTruthDataSet/ground_truth_training_set_task_1.txt",\
-					help="Ground truth text file (Default: GroundTruthDataSet/ground_truth_training_set_task_1.txt)")
+					default="../GroundTruthDataSet/ground_truth_training_set_task_1.txt",\
+					help="Ground truth text file (Default: ../GroundTruthDataSet/ground_truth_training_set_task_1.txt)")
 	args = parser.parse_args()
 
 	if args.convert:
