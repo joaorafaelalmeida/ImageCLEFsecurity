@@ -61,7 +61,8 @@ def writeResult(allScores, resultFile, writeScore=False, writeRealExtension=Fals
 	if writeRealExtension:
 		groundTruthContent = readGroundTruth(groundtruth)
 	for score in allScores:
-		result = score + ";" + allScores[score][0]
+		print (score)
+		result = score.split(".")[0] + ";" + allScores[score][0]
 		if writeScore:
 			result += ";" + str(allScores[score][1])
 		if writeRealExtension:
