@@ -3,6 +3,35 @@ import numpy as np
 from matplotlib import pyplot as plt
 import argparse
  
+def preProcessing(file) :
+    size = len(file)
+    score = 0
+
+    #weight of each rule
+    rules_weight = {}
+    rules_weight['sequence_1'] = 0.33
+    rules_weight['sequence_2'] = 0.33
+    rules_weight['sequence_3'] = 0.34
+
+    #sequence 1
+    expected_last_bytes = b'3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a'
+    last_bytes = file[0 : 1260]
+    if last_bytes.find(expected_last_bytes) > -1  :
+        score = score + 1 * rules_weight['sequence_1']
+
+    #sequence 2
+    expected_last_bytes = b'35363738393a434445464748494a535455565758595a636465666768696a737475767778797a'
+    last_bytes = file[0 : 1260]
+    if last_bytes.find(expected_last_bytes) > -1  :
+        score = score + 1 * rules_weight['sequence_2']
+
+    #sequence 3
+    expected_last_bytes = b'f2f3f4f5f6f7f8f9fa'
+    last_bytes = file[0 : 1500]
+    if last_bytes.find(expected_last_bytes) > -1  :
+        score = score + 1 * rules_weight['sequence_3']
+    
+    return score
 
 def hasMessage(image_path, thresh):
 

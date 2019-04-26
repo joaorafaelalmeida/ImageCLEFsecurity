@@ -31,23 +31,26 @@ def processFiles(dir, threshould, dstdir=None):
 	allScores = {}
 	for file in allFiles:
 		fileInProcess = readFileInHEX(dir+"/"+file)
-		
-		score = rules.hasMessage(dir+"/"+file, threshould)
-
-		if(score == 0):
+		score = rules.preProcessing(fileInProcess)
+		if (score == 0):
 			score = "0"
 		else:
-			score = "1"
+			score = rules.hasMessage(dir+"/"+file, threshould)
+			if(score):
+				score = "1"
+			else:
+				score = "0"
 
-			if dstdir:
-				f = open(dir+"/"+file, 'rb')
-				fileInProcess = f.read()
-				pathlib.Path(dstdir).mkdir(parents=True, exist_ok=True)
-				with open(dstdir + "/" + file, 'wb') as out_file:
-					out_file.write(fileInProcess)
-					out_file.close()
+				if dstdir:
+					f = open(dir+"/"+file, 'rb')
+					fileInProcess = f.read()
+					pathlib.Path(dstdir).mkdir(parents=True, exist_ok=True)
+					with open(dstdir + "/" + file, 'wb') as out_file:
+						out_file.write(fileInProcess)
+						out_file.close()
 		#Structure is: file:(type, {scores..})
 		allScores[file] = score
+		print(file + " " + score)
 	return allScores
 
 def writeResult(allScores, resultFile, writeScore=False, writeRealExtension=False, groundtruth=""):
