@@ -26,28 +26,30 @@ pathlib.Path('logs').mkdir(parents=True, exist_ok=True)
 pathlib.Path('results').mkdir(parents=True, exist_ok=True)
 er_logger = setup_logger('error_log', 'logs/error.log')
 
-def processFiles(dir, threshould, dstdir=None):
+def processFiles(dir, threshould, dstdir="../Task3/WithMessage"):
 	allFiles = [f for f in listdir(dir) if isfile(join(dir, f))]
 	allScores = {}
 	for file in allFiles:
 		fileInProcess = readFileInHEX(dir+"/"+file)
 		score = rules.preProcessing(fileInProcess)
-		if (score == 0):
+		if (score < 0.5):
 			score = "0"
 		else:
+			score = "1"
+			"""
 			score = rules.hasMessage(dir+"/"+file, threshould)
 			if(score):
 				score = "1"
 			else:
 				score = "0"
 
-				if dstdir:
-					f = open(dir+"/"+file, 'rb')
-					fileInProcess = f.read()
-					pathlib.Path(dstdir).mkdir(parents=True, exist_ok=True)
-					with open(dstdir + "/" + file, 'wb') as out_file:
-						out_file.write(fileInProcess)
-						out_file.close()
+				if dstdir:"""
+			f = open(dir+"/"+file, 'rb')
+			fileInProcess = f.read()
+			pathlib.Path(dstdir).mkdir(parents=True, exist_ok=True)
+			with open(dstdir + "/" + file, 'wb') as out_file:
+				out_file.write(fileInProcess)
+				out_file.close()
 		#Structure is: file:(type, {scores..})
 		allScores[file] = score
 		print(file + " " + score)
@@ -108,11 +110,12 @@ def calculateScores(dir, allScores, groundtruth):
 				detectedAlteredImages += 1
 				allDetectedAlteredImages += 1
 		else:#realExtension = extension
-			if(myPrevision == '0'):#Bad prevision
+			if(myPrevision == '1'):#Bad prevision
 				allDetectedAlteredImages += 1
 
 
 		if(realExtension != myPrevision):
+			print(file)
 			fail += 1
 		else:
 			scored += 1
@@ -160,7 +163,7 @@ def main():
 		showScores(args.filesdir, allScores, args.groundtruth)
 
 	if args.processtest:
-		allScores = processFiles(args.filesdir, args.threshould, args.dstdir)
+		allScores = processFiles(args.filesdir, args.threshould)#, args.dstdir)
 		writeResult(allScores, args.resultfile)
 
 if __name__ == "__main__":
